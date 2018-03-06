@@ -1,7 +1,23 @@
 import Expo from 'expo';
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
-import { Container, Header, Title, Content, Footer, FooterTab, Button, Left, Right, Body, Icon, Spinner } from 'native-base';
+import { StyleSheet, View, Image } from 'react-native';
+import {
+  Body,
+  Button,
+  Card,
+  CardItem,
+  Container,
+  Content,
+  Footer,
+  FooterTab,
+  Header,
+  Icon,
+  Left,
+  Right,
+  Spinner,
+  Text,
+  Title
+} from 'native-base';
 
 import axios from 'axios';
 import querystring from 'querystring';
@@ -22,6 +38,12 @@ export default class App extends React.Component {
       username: "",
       password: "",
       tournaments: [],
+<<<<<<< HEAD
+=======
+
+      tournament: undefined,
+
+>>>>>>> 847a96ceefcf389a367d2851eb263bd8c45d8deb
       fontLoaded: false,
       isConnected: false,
       authenticated: false,
@@ -52,6 +74,11 @@ export default class App extends React.Component {
     // socket.on('ping', data => {
     //   this.setState(data);
     // });
+
+    socket.on('tournamentList', data => {
+      this.setState({tournaments: data.tournaments});
+      console.log(this.state.tournaments);
+    });
   }
 
   login(username, password) {
@@ -60,12 +87,12 @@ export default class App extends React.Component {
     this.setState({connecting: true});
     axios.post('https://lets-go2.herokuapp.com/oauth/token', querystring.stringify({
       // 'form_params': {
-        'grant_type': 'password',
-        'client_id': 1,
-        'client_secret': 'wrHi5IRItm3ib5xcdHGCO5ClENgFymSE0aaECyHl',
-        'username': this.state.username,
-        'password': this.state.password,
-        'scope': '*',
+      'grant_type': 'password',
+      'client_id': 2,
+      'client_secret': 'NcA0wfGbZkyYiqqdcK0eYXwpOLjgAx9snLrI9RCD',
+      'username': this.state.username,
+      'password': this.state.password,
+      'scope': '*',
       // }
     }))
     .then(response => {
@@ -96,6 +123,12 @@ export default class App extends React.Component {
     });
   }
 
+  joinTournament(index) {
+    let tournament = this.state.tournaments[index];
+    this.setState({tournament: tournament});
+    socket.emit('joinTournament', {id: tournament.id});
+  }
+
   render() {
     let pic = {
       uri: 'https://i.imgur.com/yUEddOv.png'
@@ -108,10 +141,10 @@ export default class App extends React.Component {
             <Spinner color='red' />
           ) : (
             <Login username={this.state.username}
-              usernameChange={(username) => this.setState({'username': username})}
-              password={this.state.password}
-              passwordChange={(password) => this.setState({'password': password})}
-              login={() => this.login()}/>
+            usernameChange={(username) => this.setState({'username': username})}
+            password={this.state.password}
+            passwordChange={(password) => this.setState({'password': password})}
+            login={() => this.login()}/>
           )
         ) : (
           <Container>
@@ -128,14 +161,38 @@ export default class App extends React.Component {
             </Header>
             <Content>
               <Text>Welcome {this.state.name}</Text>
-              <Text>connected: {this.state.isConnected ? 'true' : 'false'}</Text>
-              <Text>
-                {this.state.tournaments.length > 0 ?
-
-                  :
-                  "There are no tournaments available right now"
-                }
-              </Text>
+              <Text>Connected: {this.state.isConnected ? 'true' : 'false'}</Text>
+              {this.state.tournament == undefined ?
+                <View>
+                  <Text>Tournaments:</Text>
+                  <View>
+                    { this.state.tournaments.length > 0 ?
+                      <View>
+                        { this.state.tournaments.map((tournament, index) => (
+                          <Card key={tournament.id}>
+                            <CardItem>
+                              <Body>
+                                <Text>
+                                  {tournament.name}
+                                </Text>
+                                <Button bordered success onPress={() => this.joinTournament(index)}>
+                                  <Text>Join tournament</Text>
+                                </Button>
+                              </Body>
+                            </CardItem>
+                          </Card>
+                        ))}
+                      </View>
+                      :
+                      <Text>There are no tournaments available right now</Text>
+                    }
+                  </View>
+                </View>
+                :
+                <View>
+                  <Text>{this.state.tournament.name}</Text>
+                </View>
+              }
             </Content>
             <Footer>
               <FooterTab>
