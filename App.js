@@ -17,15 +17,12 @@ export default class App extends React.Component {
     super(props);
 
     this.state = {
-      id: ""
+      id: "",
       name: "",
       username: "",
       password: "",
-
       tournaments: [],
-
       fontLoaded: false,
-
       isConnected: false,
       authenticated: false,
       connecting: false,
