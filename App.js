@@ -23,6 +23,8 @@ import axios from 'axios';
 import querystring from 'querystring';
 
 import Login from './components/Login';
+import Titlebar from './containers/Titlebar';
+import TournamentList from './containers/TournamentList';
 
 const io = require('socket.io-client');
 
@@ -33,23 +35,25 @@ export default class App extends React.Component {
     super(props);
 
     this.state = {
-      id: "",
-      name: "",
+      id: "1",
+      name: "Lee Geertsen",
       username: "",
       password: "",
-      tournaments: [],
-<<<<<<< HEAD
-=======
-
+      tournaments: [{id: 1, name: 'Awesome tennis tournament'}, {id: 2, name: 'Epic tennis tournament'}], //[]
       tournament: undefined,
-
->>>>>>> 847a96ceefcf389a367d2851eb263bd8c45d8deb
+      match: undefined,
       fontLoaded: false,
       isConnected: false,
-      authenticated: false,
-      connecting: false,
+      authenticated: false, //false
+      connecting: false,   //false
       isConnected: false,
     };
+  }
+
+  reset() {
+    this.setState({
+      tournament: undefined
+    });
   }
 
   async componentWillMount() {
@@ -69,6 +73,8 @@ export default class App extends React.Component {
     socket.on('connected', () => {
       console.log("connected to server");
       this.setState({ isConnected: true });
+
+      socket.emit('refereeConnected', {id: this.state.id, name: this.state.name});
     });
 
     // socket.on('ping', data => {
@@ -76,9 +82,14 @@ export default class App extends React.Component {
     // });
 
     socket.on('tournamentList', data => {
-      this.setState({tournaments: data.tournaments});
+      // this.setState({tournaments: data.tournaments});
       console.log(this.state.tournaments);
     });
+
+    socket.on('match', data => {
+      this.setState({match: data.match});
+      console.log(this.state.match);
+    })
   }
 
   login(username, password) {
@@ -89,7 +100,7 @@ export default class App extends React.Component {
       // 'form_params': {
       'grant_type': 'password',
       'client_id': 2,
-      'client_secret': 'NcA0wfGbZkyYiqqdcK0eYXwpOLjgAx9snLrI9RCD',
+      'client_secret': '4AJyEGZaDSiNzQnWmKM5389Xkn9eVBKQ0PF5FWDk',
       'username': this.state.username,
       'password': this.state.password,
       'scope': '*',
@@ -129,6 +140,16 @@ export default class App extends React.Component {
     socket.emit('joinTournament', {id: tournament.id});
   }
 
+  addPoint(j) {
+    console.log("tournament.id: " + this.state.tournament.id);
+    socket.emit('addPoint', {
+      tournament: this.state.tournament.id,
+      tour: this.state.match.tour,
+      id: this.state.match.id,
+      joueur: j
+    });
+  }
+
   render() {
     let pic = {
       uri: 'https://i.imgur.com/yUEddOv.png'
@@ -138,7 +159,9 @@ export default class App extends React.Component {
       this.state.fontLoaded ? (
         !this.state.authenticated ? (
           this.state.connecting ? (
-            <Spinner color='red' />
+            <View style={{height: '100%', backgroundColor: '#ecf0f1', justifyContent: 'center'}}>
+              <Spinner color='red' />
+            </View>
           ) : (
             <Login username={this.state.username}
             usernameChange={(username) => this.setState({'username': username})}
@@ -148,41 +171,18 @@ export default class App extends React.Component {
           )
         ) : (
           <Container>
-            <Header>
-              <Left>
-                <Button transparent>
-                  <Icon name='menu' />
-                </Button>
-              </Left>
-              <Body>
-                <Title>SLAM</Title>
-              </Body>
-              <Right />
-            </Header>
-            <Content>
-              <Text>Welcome {this.state.name}</Text>
-              <Text>Connected: {this.state.isConnected ? 'true' : 'false'}</Text>
+            <Titlebar reset={() => this.reset()}/>
+            <Content style={{paddingTop: 15, paddingHorizontal: 10}}>
               {this.state.tournament == undefined ?
                 <View>
-                  <Text>Tournaments:</Text>
+                  <Text style={{textAlign: 'center', marginBottom: 15}}>Welcome {this.state.name}</Text>
+                  <Text style={{fontSize: 16, fontWeight: '800'}}>Tournaments:</Text>
                   <View>
                     { this.state.tournaments.length > 0 ?
-                      <View>
-                        { this.state.tournaments.map((tournament, index) => (
-                          <Card key={tournament.id}>
-                            <CardItem>
-                              <Body>
-                                <Text>
-                                  {tournament.name}
-                                </Text>
-                                <Button bordered success onPress={() => this.joinTournament(index)}>
-                                  <Text>Join tournament</Text>
-                                </Button>
-                              </Body>
-                            </CardItem>
-                          </Card>
-                        ))}
-                      </View>
+                      <TournamentList
+                        tournaments={this.state.tournaments}
+                        joinTournament={(index) => this.joinTournament(index)}
+                      />
                       :
                       <Text>There are no tournaments available right now</Text>
                     }
@@ -191,14 +191,29 @@ export default class App extends React.Component {
                 :
                 <View>
                   <Text>{this.state.tournament.name}</Text>
+                  {this.state.match == undefined ?
+                    <Text>Waiting for tournament to start</Text>
+                    :
+                    <View>
+                      <Text>{this.state.match._joueur1.lastName} VS {this.state.match._joueur2.lastName}</Text>
+                      <Button danger onPress={() => this.addPoint(1)}>
+                        <Text>Player1</Text>
+                      </Button>
+                      <Button danger onPress={() => this.addPoint(2)}>
+                        <Text>Player2</Text>
+                      </Button>
+                    </View>
+                  }
                 </View>
               }
             </Content>
             <Footer>
-              <FooterTab>
-                <Button full>
-                  <Text>Footer</Text>
-                </Button>
+              <FooterTab style={styles.footer}>
+                {this.state.isConnected ?
+                  <Text style={styles.white}>Connected</Text>
+                :
+                  <Spinner color='white' />
+                }
               </FooterTab>
             </Footer>
           </Container>
@@ -215,4 +230,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  footer: {
+    backgroundColor: '#D0021B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  white: {
+    color: '#fff'
+  }
 });
